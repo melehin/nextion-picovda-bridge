@@ -116,6 +116,11 @@ Strip heights should sum to **240**; segment widths in a strip to **320**.
 
 See `scene/demo_main.nxscene` for a full example (color + ftext + graph zone).
 
+## Wiring
+
+See **[docs/wiring.md](docs/wiring.md)** for VGA resistor network + Nextion UART (GP16/GP17).  
+Do not use GP0/GP1 for serial — they are VGA blue.
+
 ## UART protocol (host → Pico)
 
 Default: **UART0**, **115200 8N1**, TX=**GP16**, RX=**GP17** (change in `src/main.cpp`).
