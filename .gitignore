@@ -1,0 +1,31 @@
+# Build outputs
+/build/
+/generated/
+*.uf2
+*.elf
+*.bin
+*.hex
+*.map
+*.dis
+*.o
+*.a
+
+# Host / IDE
+__pycache__/
+*.pyc
+*.pyo
+.Python
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+compile_commands.json
+.cache/
+.clangd/
+
+# Local env overrides
+.env
+.env.*
+*.local

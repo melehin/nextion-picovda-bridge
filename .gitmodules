@@ -1,0 +1,3 @@
+[submodule "third_party/picovga-cmake"]
+	path = third_party/picovga-cmake
+	url = https://github.com/codaris/picovga-cmake.git

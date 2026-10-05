@@ -1,0 +1,54 @@
+# nextion-picovda scene (authoring DSL)
+# compile → demo_main.nxb
+#
+# Target: 320x240, hybrid COLOR + FTEXT + GRAPH8 zone
+# Colors: R3G3B2 hex (#RRGGBB approximated by compiler)
+
+meta
+  size 320 240
+  font 1 8x16
+
+# ---- page 0: main ----
+page main 0 bg=#001830
+
+  # PicoVGA strip plan for this page
+  plan
+    strip 32
+      seg color 320 bg=#102848
+    strip 16
+      seg ftext 320 font=1 bg=#102848 buf=ftext0
+    strip 120
+      seg color 80  bg=#001830
+      seg graph8 160 buf=graph
+      seg color 80  bg=#001830
+    strip 72
+      seg ftext 320 font=1 bg=#001830 buf=ftext1
+
+  # chrome (COLOR / optional GRAPH)
+  rect  r_hdr  x=0   y=0   w=320 h=32  fill=#102848
+
+  # title lives in FTEXT strip (y maps into strip 1)
+  text  t0     x=8   y=36  font=1 color=#ffffff "PicoVGA Bridge"
+
+  # free-draw zone content (offset relative to display; renderer clips to graph seg)
+  rect  r_box  x=90  y=60  w=100 h=60 fill=#204060 stroke=#80c0ff stroke_w=1 graph
+  circle c1    x=200 y=100 r=28  fill=#ff6030 stroke=#ffffff stroke_w=1 graph
+
+  # values in lower FTEXT strip
+  text  t1     x=8   y=180 font=1 color=#a0c0ff "RPM"
+  num   n0     x=64  y=180 font=1 color=#ffff00 val=0 digits=4
+  text  t2     x=8   y=200 font=1 color=#a0c0ff "TEMP"
+  num   n1     x=64  y=200 font=1 color=#00ff80 val=25 digits=3
+
+# ---- page 1: settings ----
+page settings 1 bg=#180018
+
+  plan
+    strip 24
+      seg color 320 bg=#301030
+    strip 216
+      seg ftext 320 font=1 bg=#180018 buf=ftext0
+
+  text  t0  x=8 y=28 font=1 color=#ffffff "Settings"
+  text  t1  x=8 y=56 font=1 color=#c080ff "baud"
+  num   n0  x=80 y=56 font=1 color=#ffff00 val=115200 digits=6
