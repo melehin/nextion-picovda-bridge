@@ -1,18 +1,18 @@
 // ****************************************************************************
-// VGA configuration — memory-optimized for 320x240 Nextion bridge
+// VGA configuration — 1280x720 FTEXT-heavy Nextion bridge
 // (project-local; does not modify PicoVGA sources)
 // ****************************************************************************
 
-// 1 base layer only (no overlays for v1)
+// 1 base layer only
 #define LAYERS   1
 #define SEGMAX   4
 #define STRIPMAX 8
 
-#define MAXX     320
-#define MAXY     240
-#define MAXLINE  525
+#define MAXX     1280
+#define MAXY     720
+#define MAXLINE  806
 
-// Scanline render buffers
+// Scanline render buffers (scale with MAXX)
 #define DBUF0_MAX (MAXX+8)
 #define CBUF0_MAX ((MAXX+24)/4)
 

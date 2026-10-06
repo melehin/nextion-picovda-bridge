@@ -6,7 +6,7 @@ Author layouts in a compact `.nxscene` text DSL, compile to a tiny `.nxb` binary
 
 ## Features
 
-- Hybrid low-RAM display: `COLOR` strips + `FTEXT` + small `GRAPH8` draw zone (320×240, 1 layer)
+- Hybrid low-RAM display: `COLOR` + `FTEXT` (+ optional tiny `GRAPH8`) at **1280×720**, 1 layer
 - Precompiled scene format (`.nxb`) with host compiler
 - Runtime object store + Nextion command subset over UART
 - Untouched PicoVGA dependency (git submodule)
@@ -89,32 +89,32 @@ Or change `SCENE_SRC` / symbol names in `CMakeLists.txt`, then rebuild.
 
 ```text
 meta
-  size 320 240
+  size 1280 720
   font 1 8x16
 
 page home 0 bg=#001830
   plan
+    strip 64
+      seg color 1280 bg=#102848
     strip 32
-      seg color 320 bg=#102848
-    strip 16
-      seg ftext 320 font=1 bg=#102848 buf=ftext0
-    strip 192
-      seg ftext 320 font=1 bg=#001830 buf=ftext1
+      seg ftext 1280 font=1 bg=#102848 buf=ftext0
+    strip 624
+      seg ftext 1280 font=1 bg=#001830 buf=ftext1
 
-  text t0 x=8 y=36 font=1 color=#ffffff "Title"
-  num  n0 x=8 y=64 font=1 color=#ffff00 val=0 digits=4
+  text t0 x=16 y=72 font=1 color=#ffffff "Title"
+  num  n0 x=16 y=112 font=1 color=#ffff00 val=0 digits=4
 ```
 
 | Want | Use |
 |------|-----|
 | Solid header / background | `seg color` |
 | Labels / numbers | `seg ftext` + `text` / `num` |
-| Circles / free boxes | `seg graph8` + objects tagged `graph` |
+| Circles / free boxes | tiny `seg graph8` + objects tagged `graph` |
 | Another screen | new `page` with its own `plan` |
 
-Strip heights should sum to **240**; segment widths in a strip to **320**.
+Strip heights should sum to **720**; segment widths in a strip to **1280**.
 
-See `scene/demo_main.nxscene` for a full example (color + ftext + graph zone).
+See `scene/demo_main.nxscene` for the current FTEXT-heavy demo.
 
 ## Wiring
 
@@ -144,8 +144,8 @@ Object names are resolved on the **current page** (Nextion-style).
 
 PicoVGA data (fonts, frame buffers) must live in **RAM**. This project avoids a full-screen 8-bit framebuffer:
 
-- `src/vga_config.h` — `LAYERS=1`, `MAXX=320`, `MAXY=240`
-- Prefer COLOR/FTEXT; keep GRAPH8 regions small
+- `src/vga_config.h` — `LAYERS=1`, `MAXX=1280`, `MAXY=720`
+- Prefer COLOR/FTEXT; keep any GRAPH8 region tiny (demo is FTEXT-only)
 
 ## License
 

@@ -1,54 +1,54 @@
 # nextion-picovda scene (authoring DSL)
-# compile → demo_main.nxb
-#
-# Target: 320x240, hybrid COLOR + FTEXT + GRAPH8 zone
-# Colors: R3G3B2 hex (#RRGGBB approximated by compiler)
+# Target: 1280x720 on VideoXGA timings
+# Layout: COLOR side pillars + center FTEXT 640 (keeps scanline render cheap)
 
 meta
-  size 320 240
+  size 1280 720
   font 1 8x16
 
 # ---- page 0: main ----
 page main 0 bg=#001830
 
-  # PicoVGA strip plan for this page
   plan
+    strip 64
+      seg color 1280 bg=#102848
     strip 32
       seg color 320 bg=#102848
-    strip 16
-      seg ftext 320 font=1 bg=#102848 buf=ftext0
-    strip 120
-      seg color 80  bg=#001830
-      seg graph8 160 buf=graph
-      seg color 80  bg=#001830
-    strip 72
-      seg ftext 320 font=1 bg=#001830 buf=ftext1
+      seg ftext 640 font=1 bg=#102848 buf=ftext0
+      seg color 320 bg=#102848
+    strip 592
+      seg color 320 bg=#001830
+      seg ftext 640 font=1 bg=#001830 buf=ftext1
+      seg color 320 bg=#001830
+    strip 32
+      seg color 1280 bg=#0a1428
 
-  # chrome (COLOR / optional GRAPH)
-  rect  r_hdr  x=0   y=0   w=320 h=32  fill=#102848
-
-  # title lives in FTEXT strip (y maps into strip 1)
-  text  t0     x=8   y=36  font=1 color=#ffffff "PicoVGA Bridge"
-
-  # free-draw zone content (offset relative to display; renderer clips to graph seg)
-  rect  r_box  x=90  y=60  w=100 h=60 fill=#204060 stroke=#80c0ff stroke_w=1 graph
-  circle c1    x=200 y=100 r=28  fill=#ff6030 stroke=#ffffff stroke_w=1 graph
-
-  # values in lower FTEXT strip
-  text  t1     x=8   y=180 font=1 color=#a0c0ff "RPM"
-  num   n0     x=64  y=180 font=1 color=#ffff00 val=0 digits=4
-  text  t2     x=8   y=200 font=1 color=#a0c0ff "TEMP"
-  num   n1     x=64  y=200 font=1 color=#00ff80 val=25 digits=3
+  # text x is absolute; center band starts at x=320
+  text  t0  x=336 y=72  font=1 color=#ffffff "PicoVGA Bridge 1280x720"
+  text  t1  x=336 y=112 font=1 color=#a0c0ff "RPM"
+  num   n0  x=400 y=112 font=1 color=#ffff00 val=0 digits=4
+  text  t2  x=336 y=144 font=1 color=#a0c0ff "TEMP"
+  num   n1  x=400 y=144 font=1 color=#00ff80 val=25 digits=3
+  text  t3  x=336 y=176 font=1 color=#80ffc0 "STATUS"
+  text  t4  x=440 y=176 font=1 color=#ffffff "OK"
+  text  t5  x=336 y=208 font=1 color=#6080a0 "center FTEXT + COLOR sides"
 
 # ---- page 1: settings ----
 page settings 1 bg=#180018
 
   plan
-    strip 24
+    strip 48
+      seg color 1280 bg=#301030
+    strip 32
       seg color 320 bg=#301030
-    strip 216
-      seg ftext 320 font=1 bg=#180018 buf=ftext0
+      seg ftext 640 font=1 bg=#301030 buf=ftext0
+      seg color 320 bg=#301030
+    strip 640
+      seg color 320 bg=#180018
+      seg ftext 640 font=1 bg=#180018 buf=ftext1
+      seg color 320 bg=#180018
 
-  text  t0  x=8 y=28 font=1 color=#ffffff "Settings"
-  text  t1  x=8 y=56 font=1 color=#c080ff "baud"
-  num   n0  x=80 y=56 font=1 color=#ffff00 val=115200 digits=6
+  text  t0  x=336 y=56  font=1 color=#ffffff "Settings"
+  text  t1  x=336 y=96  font=1 color=#c080ff "baud"
+  num   n0  x=416 y=96  font=1 color=#ffff00 val=115200 digits=6
+  text  t2  x=336 y=128 font=1 color=#a080c0 "page main / page settings"

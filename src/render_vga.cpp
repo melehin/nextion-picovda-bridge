@@ -8,12 +8,16 @@
 #include <string.h>
 #include <stdio.h>
 
-/* Max slots matching scene compiler conventions */
+/*
+ * 1280x720 FTEXT-heavy profile:
+ * - VideoXGA timings (proven 16:9 path; HD+full-width FTEXT is too heavy on RP2040)
+ * - COLOR side pillars + center FTEXT (narrower render = keeps sync)
+ */
 #define FTEXT_SLOTS 2
-#define FTEXT_COLS  40   /* 320/8 */
-#define FTEXT_ROWS  8
-#define GRAPH_W     160
-#define GRAPH_H     120
+#define FTEXT_COLS  80    /* center band up to 640px @ 8px/cell */
+#define FTEXT_ROWS  45
+#define GRAPH_W     64
+#define GRAPH_H     64
 
 static object_store_t *g_store;
 
@@ -40,15 +44,33 @@ static uint16_t font_h(uint8_t font_id)
 	return 16;
 }
 
-static void ftext_clear(uint8_t slot, uint8_t cols, uint8_t rows)
+static int clamp_cols(int cols)
+{
+	if (cols < 1)
+		return 1;
+	if (cols > FTEXT_COLS)
+		return FTEXT_COLS;
+	return cols;
+}
+
+static int clamp_rows(int rows)
+{
+	if (rows < 1)
+		return 1;
+	if (rows > FTEXT_ROWS)
+		return FTEXT_ROWS;
+	return rows;
+}
+
+static void ftext_clear(uint8_t slot, int cols, int rows)
 {
 	if (slot >= FTEXT_SLOTS)
 		return;
-	memset(FText[slot], 0, (size_t)cols * rows * 2);
+	memset(FText[slot], 0, (size_t)cols * (size_t)rows * 2u);
 }
 
 static void ftext_put(uint8_t slot, int col, int row, char ch, uint8_t color,
-                      uint8_t cols, uint8_t rows)
+                      int cols, int rows)
 {
 	if (slot >= FTEXT_SLOTS || col < 0 || row < 0 || col >= cols || row >= rows)
 		return;
@@ -57,10 +79,10 @@ static void ftext_put(uint8_t slot, int col, int row, char ch, uint8_t color,
 	p[1] = color;
 }
 
-static void ftext_write(uint8_t slot, int x_px, int y_in_strip, const char *txt,
-                        uint8_t color, uint8_t cols, uint8_t rows, uint16_t fh)
+static void ftext_write(uint8_t slot, int x_local, int y_in_strip, const char *txt,
+                        uint8_t color, int cols, int rows, uint16_t fh)
 {
-	int col = x_px / 8;
+	int col = x_local / 8;
 	int row = y_in_strip / (int)fh;
 	for (int i = 0; txt[i]; i++)
 		ftext_put(slot, col + i, row, txt[i], color, cols, rows);
@@ -88,9 +110,8 @@ static void draw_graph_objects(object_store_t *s, uint8_t bg)
 
 		if (o->type == NXB_OBJ_RECT) {
 			DrawRect(&GraphCanvas, x, y, o->w, o->h, o->fill);
-			if (o->stroke_w) {
+			if (o->stroke_w)
 				DrawFrame(&GraphCanvas, x, y, o->w, o->h, o->stroke);
-			}
 		} else if (o->type == NXB_OBJ_CIRCLE) {
 			DrawFillCircle(&GraphCanvas, x, y, o->w, o->fill, 0xff);
 			if (o->stroke_w)
@@ -106,24 +127,24 @@ static void place_text_objects(object_store_t *s)
 	if (!page)
 		return;
 
-	/* Rebuild FTEXT from objects mapped into each FTEXT strip. */
 	int y_cursor = 0;
 	for (uint8_t si = 0; si < page->strip_count; si++) {
 		const nxb_strip_t *st = &s->strips[page->strip_first + si];
 		int strip_y0 = y_cursor;
 		int strip_y1 = y_cursor + st->height;
+		int x_cursor = 0;
 
 		for (uint8_t gi = 0; gi < st->seg_count; gi++) {
 			const nxb_seg_t *seg = &s->segs[st->seg_first + gi];
+			int seg_x0 = x_cursor;
+			int seg_x1 = x_cursor + seg->width;
+			x_cursor = seg_x1;
+
 			if (seg->kind != NXB_SEG_FTEXT)
 				continue;
 
-			uint8_t cols = (uint8_t)(seg->width / 8);
-			if (cols > FTEXT_COLS)
-				cols = FTEXT_COLS;
-			uint8_t rows = (uint8_t)seg->rows;
-			if (rows > FTEXT_ROWS)
-				rows = FTEXT_ROWS;
+			int cols = clamp_cols(seg->width / 8);
+			int rows = clamp_rows(seg->rows);
 			ftext_clear(seg->buf_id, cols, rows);
 
 			uint16_t fh = font_h(seg->font_id);
@@ -137,8 +158,10 @@ static void place_text_objects(object_store_t *s)
 					continue;
 				if (o->y < strip_y0 || o->y >= strip_y1)
 					continue;
+				if (o->x < seg_x0 || o->x >= seg_x1)
+					continue;
 
-				ftext_write(seg->buf_id, o->x, o->y - strip_y0, o->text,
+				ftext_write(seg->buf_id, o->x - seg_x0, o->y - strip_y0, o->text,
 				            o->color, cols, rows, fh);
 				o->dirty &= (uint8_t)~DIRTY_TEXT;
 			}
@@ -203,9 +226,7 @@ void render_apply_page(object_store_t *store)
 				ScreenSegmColor(g, col, col);
 				break;
 			case NXB_SEG_FTEXT: {
-				uint8_t cols = (uint8_t)(seg->width / 8);
-				if (cols > FTEXT_COLS)
-					cols = FTEXT_COLS;
+				int cols = clamp_cols(seg->width / 8);
 				uint8_t slot = seg->buf_id;
 				if (slot >= FTEXT_SLOTS)
 					slot = 0;
@@ -253,9 +274,17 @@ int render_init(object_store_t *store)
 	StartVgaCore();
 
 	VgaCfgDef(&Cfg);
-	Cfg.video = &VideoVGA;
+	/*
+	 * VideoHD + full-width FTEXT at 1280 is too demanding (pixel clock ~102 MHz
+	 * and software text render per scanline). VideoXGA is the PicoVGA-proven
+	 * high-res path (monoscope uses 1360x768 here); 1280x720 fits vmax=768.
+	 */
+	Cfg.video = &VideoXGA;
 	Cfg.width = store->width;
 	Cfg.height = store->height;
+	Cfg.wfull = store->width;
+	Cfg.freq = 120000;
+	Cfg.fmax = 270000;
 	Cfg.mode[1] = LAYERMODE_BASE;
 	Cfg.mode[2] = LAYERMODE_BASE;
 	Cfg.mode[3] = LAYERMODE_BASE;
